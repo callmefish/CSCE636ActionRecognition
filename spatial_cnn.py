@@ -16,15 +16,16 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-import dataloader
+from dataloader import spatial_dataloader
 from utils import *
 from network import *
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+# 添加命令行指令
 parser = argparse.ArgumentParser(description='UCF101 spatial stream on resnet101')
-parser.add_argument('--epochs', default=500, type=int, metavar='N', help='number of total epochs')
-parser.add_argument('--batch-size', default=25, type=int, metavar='N', help='mini-batch size (default: 25)')
+parser.add_argument('--epochs', default=40, type=int, metavar='N', help='number of total epochs')
+parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
@@ -33,18 +34,20 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='man
 def main():
     global arg
     arg = parser.parse_args()
-    print arg
+    print(arg)
 
     #Prepare DataLoader
-    data_loader = dataloader.spatial_dataloader(
+    data_loader = spatial_dataloader(
                         BATCH_SIZE=arg.batch_size,
+                        # 进程数量
                         num_workers=8,
-                        path='/home/ubuntu/data/UCF101/spatial_no_sampled/',
-                        ucf_list ='/home/ubuntu/cvlab/pytorch/ucf101_two_stream/github/UCF_list/',
+                        path='/home/yzy20161103/csce636project/two-stream-action-recognition/video_data/',
+                        ucf_list ='/home/yzy20161103/csce636project/two-stream-action-recognition/UCF_list/',
                         ucf_split ='01', 
                         )
     
     train_loader, test_loader, test_video = data_loader.run()
+
     #Model 
     model = Spatial_CNN(
                         nb_epochs=arg.epochs,
@@ -78,6 +81,7 @@ class Spatial_CNN():
         #build model
         self.model = resnet101(pretrained= True, channel=3).cuda()
         #Loss function and optimizer
+        #self.criterion = nn.BCEWithLogitsLoss().cuda()
         self.criterion = nn.CrossEntropyLoss().cuda()
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, momentum=0.9)
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=1,verbose=True)
@@ -131,36 +135,41 @@ class Spatial_CNN():
         data_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
-        top5 = AverageMeter()
+        #top5 = AverageMeter()
         #switch to train mode
         self.model.train()    
         end = time.time()
         # mini-batch training
         progress = tqdm(self.train_loader)
+        
         for i, (data_dict,label) in enumerate(progress):
 
     
             # measure data loading time
             data_time.update(time.time() - end)
             
-            label = label.cuda(async=True)
+            label = label.cuda()
             target_var = Variable(label).cuda()
+            #target_var = label.cuda()
 
             # compute output
-            output = Variable(torch.zeros(len(data_dict['img1']),101).float()).cuda()
+            output = Variable(torch.zeros(len(data_dict['img1']),2).float()).cuda()
+            #output = torch.zeros(len(data_dict['img1']),2).float().cuda()
             for i in range(len(data_dict)):
                 key = 'img'+str(i)
                 data = data_dict[key]
                 input_var = Variable(data).cuda()
+                #input_var = data.cuda()
                 output += self.model(input_var)
+
 
             loss = self.criterion(output, target_var)
 
             # measure accuracy and record loss
-            prec1, prec5 = accuracy(output.data, label, topk=(1, 5))
-            losses.update(loss.data[0], data.size(0))
+            prec1 = accuracy(output.data, label, topk=(1,))
+            losses.update(loss.data, data.size(0))
             top1.update(prec1[0], data.size(0))
-            top5.update(prec5[0], data.size(0))
+            #top5.update(prec5, data.size(0))
 
             # compute gradient and do SGD step
             self.optimizer.zero_grad()
@@ -174,9 +183,8 @@ class Spatial_CNN():
         info = {'Epoch':[self.epoch],
                 'Batch Time':[round(batch_time.avg,3)],
                 'Data Time':[round(data_time.avg,3)],
-                'Loss':[round(losses.avg,5)],
-                'Prec@1':[round(top1.avg,4)],
-                'Prec@5':[round(top5.avg,4)],
+                'Loss':[round(losses.avg.item(),5)],
+                'Prec@1':[round(top1.avg.item(),4)],
                 'lr': self.optimizer.param_groups[0]['lr']
                 }
         record_info(info, 'record/spatial/rgb_train.csv','train')
@@ -186,48 +194,51 @@ class Spatial_CNN():
         batch_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
-        top5 = AverageMeter()
+        #top5 = AverageMeter()
         # switch to evaluate mode
         self.model.eval()
         self.dic_video_level_preds={}
         end = time.time()
         progress = tqdm(self.test_loader)
-        for i, (keys,data,label) in enumerate(progress):
+        print(progress)
+        with torch.no_grad():
+            for i, (keys,data,label) in enumerate(progress):
             
-            label = label.cuda(async=True)
-            data_var = Variable(data, volatile=True).cuda(async=True)
-            label_var = Variable(label, volatile=True).cuda(async=True)
+                label = label.cuda()
+                data = data.cuda()
+                #data_var = Variable(data, volatile=True).cuda()
+                #label_var = Variable(label, volatile=True).cuda()
 
-            # compute output
-            output = self.model(data_var)
-            # measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
-            #Calculate video level prediction
-            preds = output.data.cpu().numpy()
-            nb_data = preds.shape[0]
-            for j in range(nb_data):
-                videoName = keys[j].split('/',1)[0]
-                if videoName not in self.dic_video_level_preds.keys():
-                    self.dic_video_level_preds[videoName] = preds[j,:]
-                else:
-                    self.dic_video_level_preds[videoName] += preds[j,:]
+                # compute output
+                #output = self.model(data_var)
+                output = self.model(data)
+                # measure elapsed time
+                batch_time.update(time.time() - end)
+                end = time.time()
+                #Calculate video level prediction
+                preds = output.data.cpu().numpy()
+                nb_data = preds.shape[0]
+                for j in range(nb_data):
+                    videoName = keys[j].split('/',1)[0]
+                    if videoName not in self.dic_video_level_preds.keys():
+                        self.dic_video_level_preds[videoName] = preds[j,:]
+                    else:
+                        self.dic_video_level_preds[videoName] += preds[j,:]
 
-        video_top1, video_top5, video_loss = self.frame2_video_level_accuracy()
+        video_top1, video_loss = self.frame2_video_level_accuracy()
             
-
+    
         info = {'Epoch':[self.epoch],
                 'Batch Time':[round(batch_time.avg,3)],
-                'Loss':[round(video_loss,5)],
-                'Prec@1':[round(video_top1,3)],
-                'Prec@5':[round(video_top5,3)]}
+                'Loss':[np.round(video_loss,5)],
+                'Prec@1':[np.round(video_top1,3)]}
         record_info(info, 'record/spatial/rgb_test.csv','test')
         return video_top1, video_loss
 
     def frame2_video_level_accuracy(self):
             
         correct = 0
-        video_level_preds = np.zeros((len(self.dic_video_level_preds),101))
+        video_level_preds = np.zeros((len(self.dic_video_level_preds),2))
         video_level_labels = np.zeros(len(self.dic_video_level_preds))
         ii=0
         for name in sorted(self.dic_video_level_preds.keys()):
@@ -245,14 +256,15 @@ class Spatial_CNN():
         video_level_labels = torch.from_numpy(video_level_labels).long()
         video_level_preds = torch.from_numpy(video_level_preds).float()
             
-        top1,top5 = accuracy(video_level_preds, video_level_labels, topk=(1,5))
+        # top1,top5 = accuracy(video_level_preds, video_level_labels, topk=(1,5))
+        top1 = accuracy(video_level_preds, video_level_labels, topk=(1,))
         loss = self.criterion(Variable(video_level_preds).cuda(), Variable(video_level_labels).cuda())     
                             
-        top1 = float(top1.numpy())
-        top5 = float(top5.numpy())
+        top1 = float(top1[0].numpy())
+        #top5 = float(top5.numpy())
             
         #print(' * Video level Prec@1 {top1:.3f}, Video level Prec@5 {top5:.3f}'.format(top1=top1, top5=top5))
-        return top1,top5,loss.data.cpu().numpy()
+        return top1,loss.data.cpu().numpy()
 
 
 

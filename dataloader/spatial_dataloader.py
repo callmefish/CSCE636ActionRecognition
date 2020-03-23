@@ -3,16 +3,17 @@ from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import random
-from split_train_test_video import *
+from .split_train_test_video import *
 from skimage import io, color, exposure
+import torch
 
 class spatial_dataset(Dataset):  
     def __init__(self, dic, root_dir, mode, transform=None):
  
-        self.keys = dic.keys()
-        self.values=dic.values()
+        self.keys = list(dic.keys())
+        self.values = list(dic.values())
         self.root_dir = root_dir
-        self.mode =mode
+        self.mode = mode
         self.transform = transform
 
     def __len__(self):
@@ -22,36 +23,38 @@ class spatial_dataset(Dataset):
         if video_name.split('_')[0] == 'HandstandPushups':
             n,g = video_name.split('_',1)
             name = 'HandStandPushups_'+g
-            path = self.root_dir + 'HandstandPushups'+'/separated_images/v_'+name+'/v_'+name+'_'
+            path = self.root_dir + 'v_HandstandPushups' + '/frame'
         else:
-            path = self.root_dir + video_name.split('_')[0]+'/separated_images/v_'+video_name+'/v_'+video_name+'_'
+            path = self.root_dir + 'v_'+video_name + '/frame'
          
-        img = Image.open(path +str(index)+'.jpg')
+        img = Image.open(path + '_' + str(index).zfill(6) + '.jpg')
         transformed_img = self.transform(img)
         img.close()
 
         return transformed_img
 
+    # 让对象实现迭代功能
     def __getitem__(self, idx):
 
         if self.mode == 'train':
-            video_name, nb_clips = self.keys[idx].split(' ')
+            video_name, nb_clips = self.keys[idx-1].split(' ')
             nb_clips = int(nb_clips)
             clips = []
-            clips.append(random.randint(1, nb_clips/3))
-            clips.append(random.randint(nb_clips/3, nb_clips*2/3))
-            clips.append(random.randint(nb_clips*2/3, nb_clips+1))
+            # 任意选取三帧图片
+            clips.append(random.randint(1, nb_clips//3))
+            clips.append(random.randint(nb_clips//3, nb_clips*2//3))
+            clips.append(random.randint(nb_clips*2//3, nb_clips+1))
             
         elif self.mode == 'val':
-            video_name, index = self.keys[idx].split(' ')
+            video_name, index = self.keys[idx-1].split(' ')
             index =abs(int(index))
         else:
             raise ValueError('There are only train and val mode')
 
-        label = self.values[idx]
+        label = self.values[idx-1]
         label = int(label)-1
         
-        if self.mode=='train':
+        if self.mode == 'train':
             data ={}
             for i in range(len(clips)):
                 key = 'img'+str(i)
@@ -59,8 +62,9 @@ class spatial_dataset(Dataset):
                 data[key] = self.load_ucf_image(video_name, index)
                     
             sample = (data, label)
-        elif self.mode=='val':
+        elif self.mode == 'val':
             data = self.load_ucf_image(video_name,index)
+            
             sample = (video_name, data, label)
         else:
             raise ValueError('There are only train and val mode')
@@ -78,10 +82,11 @@ class spatial_dataloader():
         splitter = UCF101_splitter(path=ucf_list,split=ucf_split)
         self.train_video, self.test_video = splitter.split_video()
 
+    # 把video名称和帧数对应起来的字典, {'asdasd': 289, 'asdasc': 152}
     def load_frame_count(self):
-        #print '==> Loading frame number of each video'
-        with open('dic/frame_count.pickle','rb') as file:
-            dic_frame = pickle.load(file)
+        # print '==> Loading frame number of each video'
+        with open('/home/yzy20161103/csce636project/two-stream-action-recognition/dataloader/dic/frame_count.pickle','rb') as file:
+           dic_frame = pickle.load(file)
         file.close()
 
         for line in dic_frame :
@@ -100,6 +105,7 @@ class spatial_dataloader():
 
         return train_loader, val_loader, self.test_video
 
+    # 将video名字+帧数（-9）和动作编号对应起来的字典
     def get_training_dic(self):
         #print '==> Generate frame numbers of each training video'
         self.dic_training={}
@@ -110,10 +116,11 @@ class spatial_dataloader():
             self.dic_training[key] = self.train_video[video]
                     
     def val_sample20(self):
-        print '==> sampling testing frames'
+        print('==> sampling testing frames')
         self.dic_testing={}
         for video in self.test_video:
             nb_frame = self.frame_count[video]-10+1
+            # 分成19个片段
             interval = int(nb_frame/19)
             for i in range(19):
                 frame = i*interval
@@ -122,13 +129,18 @@ class spatial_dataloader():
 
     def train(self):
         training_set = spatial_dataset(dic=self.dic_training, root_dir=self.data_path, mode='train', transform = transforms.Compose([
+                #transforms.Resize(256),
+                #transforms.FiveCrop(224),
+                #transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(transforms.ToTensor()(crop)) for crop in crops]))
                 transforms.RandomCrop(224),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
+                # 从ImageNet中抽样出来的平均值和标准差值
                 transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
                 ]))
-        print '==> Training data :',len(training_set),'frames'
-        print training_set[1][0]['img1'].size()
+        print('==> Training data :',len(training_set),'frames')
+        # sample = (video_name, data, label), extract data['img1']
+        print(training_set[1][0]['img1'].size())
 
         train_loader = DataLoader(
             dataset=training_set, 
@@ -139,13 +151,14 @@ class spatial_dataloader():
 
     def validate(self):
         validation_set = spatial_dataset(dic=self.dic_testing, root_dir=self.data_path, mode='val', transform = transforms.Compose([
-                transforms.Scale([224,224]),
+                transforms.Resize([224,224]),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
                 ]))
         
-        print '==> Validation data :',len(validation_set),'frames'
-        print validation_set[1][1].size()
+        print('==> Validation data :',len(validation_set),'frames')
+        # sample = (video_name, data, label), extract data
+        print(validation_set[0][1].size())
 
         val_loader = DataLoader(
             dataset=validation_set, 
@@ -161,7 +174,7 @@ class spatial_dataloader():
 if __name__ == '__main__':
     
     dataloader = spatial_dataloader(BATCH_SIZE=1, num_workers=1, 
-                                path='/home/ubuntu/data/UCF101/spatial_no_sampled/', 
-                                ucf_list='/home/ubuntu/cvlab/pytorch/ucf101_two_stream/github/UCF_list/',
+                                path='/home/yzy20161103/csce636project/two-stream-action-recognition/video_data/', 
+                                ucf_list='/home/yzy20161103/csce636project/two-stream-action-recognition/UCF_list/',
                                 ucf_split='01')
     train_loader,val_loader,test_video = dataloader.run()

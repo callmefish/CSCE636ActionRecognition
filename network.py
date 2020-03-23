@@ -102,7 +102,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, nb_classes=101, channel=20):
+    def __init__(self, block, layers, nb_classes=2, channel=20):
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1_custom = nn.Conv2d(channel, 64, kernel_size=7, stride=2, padding=3,   
@@ -116,6 +116,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         self.avgpool = nn.AvgPool2d(7)
         self.fc_custom = nn.Linear(512 * block.expansion, nb_classes)
+        self.sig = nn.Sigmoid()
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -155,6 +156,7 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         out = self.fc_custom(x)
+        #out = self.sig(out)
         return out
 
 
@@ -163,7 +165,7 @@ def resnet18(pretrained=False, channel= 20, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], nb_classes=101, channel=channel, **kwargs)
+    model = ResNet(BasicBlock, [2, 2, 2, 2], nb_classes=2, channel=channel, **kwargs)
     if pretrained:
        pretrain_dict = model_zoo.load_url(model_urls['resnet18'])                  # modify pretrain code
        model_dict = model.state_dict()
@@ -174,7 +176,7 @@ def resnet18(pretrained=False, channel= 20, **kwargs):
 
 def resnet34(pretrained=False, channel= 20, **kwargs):
 
-    model = ResNet(BasicBlock, [3, 4, 6, 3], nb_classes=101, channel=channel, **kwargs)
+    model = ResNet(BasicBlock, [3, 4, 6, 3], nb_classes=2, channel=channel, **kwargs)
     if pretrained:
        pretrain_dict = model_zoo.load_url(model_urls['resnet34'])                  # modify pretrain code
        model_dict = model.state_dict()
@@ -185,7 +187,7 @@ def resnet34(pretrained=False, channel= 20, **kwargs):
 
 def resnet50(pretrained=False, channel= 20, **kwargs):
 
-    model = ResNet(Bottleneck, [3, 4, 6, 3], nb_classes=101, channel=channel, **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 6, 3], nb_classes=2, channel=channel, **kwargs)
     if pretrained:
        pretrain_dict = model_zoo.load_url(model_urls['resnet50'])                  # modify pretrain code
        model_dict = model.state_dict()
@@ -196,7 +198,7 @@ def resnet50(pretrained=False, channel= 20, **kwargs):
 
 def resnet101(pretrained=False, channel= 20, **kwargs):
 
-    model = ResNet(Bottleneck, [3, 4, 23, 3],nb_classes=101, channel=channel, **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 23, 3],nb_classes=2, channel=channel, **kwargs)
     if pretrained:
        pretrain_dict = model_zoo.load_url(model_urls['resnet101'])                  # modify pretrain code
        model_dict = model.state_dict()
@@ -242,5 +244,5 @@ def weight_transform(model_dict, pretrain_dict, channel):
 #Test network
 if __name__ == '__main__':
     model = resnet34(pretrained= True, channel=10)
-    print model
+    print(model)
      
