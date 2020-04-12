@@ -20,12 +20,8 @@ class spatial_dataset(Dataset):
         return len(self.keys)
 
     def load_ucf_image(self,video_name, index):
-        if video_name.split('_')[0] == 'HandstandPushups':
-            n,g = video_name.split('_',1)
-            name = 'HandStandPushups_'+g
-            path = self.root_dir + 'v_HandstandPushups' + '/frame'
-        else:
-            path = self.root_dir + 'v_'+video_name + '/frame'
+        
+        path = self.root_dir + 'v_'+video_name + '/frame'
          
         img = Image.open(path + '_' + str(index).zfill(6) + '.jpg')
         transformed_img = self.transform(img)
@@ -40,10 +36,13 @@ class spatial_dataset(Dataset):
             video_name, nb_clips = self.keys[idx-1].split(' ')
             nb_clips = int(nb_clips)
             clips = []
-            # 任意选取三帧图片
             clips.append(random.randint(1, nb_clips//3))
-            clips.append(random.randint(nb_clips//3, nb_clips*2//3))
-            clips.append(random.randint(nb_clips*2//3, nb_clips+1))
+            for i in range(1, 3):
+                clips.append(random.randint(i * nb_clips // 3, (i+1) * nb_clips // 3))
+            # 任意选取三帧图片
+            #clips.append(random.randint(1, nb_clips//3))
+            #clips.append(random.randint(nb_clips//3, nb_clips*2//3))
+            #clips.append(random.randint(nb_clips*2//3, nb_clips+1))
             
         elif self.mode == 'val':
             video_name, index = self.keys[idx-1].split(' ')
@@ -85,15 +84,15 @@ class spatial_dataloader():
     # 把video名称和帧数对应起来的字典, {'asdasd': 289, 'asdasc': 152}
     def load_frame_count(self):
         # print '==> Loading frame number of each video'
-        with open('/home/yzy20161103/csce636project/two-stream-action-recognition/dataloader/dic/frame_count.pickle','rb') as file:
+        with open('/home/yzy20161103/csce636_project/project/dataloader/dic/frame_count.pickle','rb') as file:
            dic_frame = pickle.load(file)
         file.close()
 
         for line in dic_frame :
             videoname = line.split('_',1)[1].split('.',1)[0]
-            n,g = videoname.split('_',1)
-            if n == 'HandStandPushups':
-                videoname = 'HandstandPushups_'+ g
+#             n,g = videoname.split('_',1)
+#             if n == 'HandStandPushups':
+#                 videoname = 'HandstandPushups_'+ g
             self.frame_count[videoname]=dic_frame[line]
 
     def run(self):
@@ -138,7 +137,7 @@ class spatial_dataloader():
                 # 从ImageNet中抽样出来的平均值和标准差值
                 transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
                 ]))
-        print('==> Training data :',len(training_set),'frames')
+        print('==> Training data :',len(training_set)*10,'frames')
         # sample = (video_name, data, label), extract data['img1']
         print(training_set[1][0]['img1'].size())
 
@@ -174,7 +173,7 @@ class spatial_dataloader():
 if __name__ == '__main__':
     
     dataloader = spatial_dataloader(BATCH_SIZE=1, num_workers=1, 
-                                path='/home/yzy20161103/csce636project/two-stream-action-recognition/video_data/', 
-                                ucf_list='/home/yzy20161103/csce636project/two-stream-action-recognition/UCF_list/',
+                                path='/home/yzy20161103/csce636_project/project/video_data_497_sim/', 
+                                ucf_list='/home/yzy20161103/csce636_project/project/UCF_list/',
                                 ucf_split='01')
     train_loader,val_loader,test_video = dataloader.run()

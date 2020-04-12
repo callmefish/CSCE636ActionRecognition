@@ -26,6 +26,7 @@ import json
 import matplotlib.pyplot as plt
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 
 
 # 添加命令行指令
@@ -34,7 +35,7 @@ parser.add_argument('--epochs', default=0, type=int, metavar='N', help='number o
 parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', default='evaluate', action='store_true', help='evaluate model on validation set')
-parser.add_argument('--resume', default='/home/yzy20161103/csce636project/two-stream-action-recognition/record/spatial/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+parser.add_argument('--resume', default='/home/yzy20161103/csce636_project/project/record/spatial_497_5/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
 
 def main(start_frame):
@@ -47,7 +48,7 @@ def main(start_frame):
                         BATCH_SIZE=arg.batch_size,
                         # 进程数量
                         num_workers=8,
-                        path='/home/yzy20161103/csce636project/two-stream-action-recognition/record/temp_chunk/',
+                        path='/home/yzy20161103/csce636_project/project/record/temp_chunk/',
                         )
     
     test_loader = data_loader.run()
@@ -81,6 +82,7 @@ class Spatial_CNN():
     def build_model(self):
         #build model
         self.model = resnet101(pretrained= True, channel=3).cuda()
+        #self.model = nn.DataParallel(resnet101(pretrained=True, channel=3)).cuda()
         #Loss function and optimizer
         self.criterion = nn.CrossEntropyLoss().cuda()
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, momentum=0.9)
@@ -94,6 +96,8 @@ class Spatial_CNN():
                 self.best_prec1 = checkpoint['best_prec1']
                 self.model.load_state_dict(checkpoint['state_dict'])
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
+#                 print("==> loaded checkpoint '{}' (epoch {}) (best_prec1 {})"
+#                   .format(self.resume, checkpoint['epoch'], self.best_prec1))
             else:
                 print("==> no checkpoint found at '{}'".format(self.resume))
         if self.evaluate:
@@ -143,8 +147,9 @@ class Spatial_CNN():
     
 
 if __name__=='__main__':
-    file_path = '/home/yzy20161103/csce636project/two-stream-action-recognition/record/sample_video/sample_video_05(N).mp4'
+    file_path = '/home/yzy20161103/csce636_project/project/record/sample_video/sample_video_05(N).mp4'
     video_title = file_path.split('/')[-1][:-4]
+    print(video_title)
     cap = cv2.VideoCapture(file_path)    
     # file_path是文件的绝对路径，防止路径中含有中文时报错，需要解码
     if cap.isOpened():  # 当成功打开视频时cap.isOpened()返回True,否则返回False
@@ -152,7 +157,8 @@ if __name__=='__main__':
         rate = cap.get(5)   # 帧速率
         FrameNumber = cap.get(7)  # 视频文件的帧数
         duration = FrameNumber/rate  # 帧速率/视频总帧数 是时间，秒
-    outPutDirName = '/home/yzy20161103/csce636project/two-stream-action-recognition/record/temp_chunk/'
+        print(duration)
+    outPutDirName = '/home/yzy20161103/csce636_project/project/record/temp_chunk/'
 
     if not os.path.exists(outPutDirName):
         # 如果文件目录不存在则创建目录
@@ -201,10 +207,10 @@ if __name__=='__main__':
     print('time_label : {}'.format(time_label))
     #os.makedirs('/home/yzy20161103/two-stream-action-recognition/record/time_label_data.json')
     json_str = json.dumps(time_label)
-    with open('/home/yzy20161103/csce636project/two-stream-action-recognition/record/time_label_data_' + video_title + '.json', 'w') as json_file:
+    with open('/home/yzy20161103/csce636_project/project/time_label_data_' + video_title + '.json', 'w') as json_file:
         json_file.write(json_str)
     plt.plot(x, y, linewidth=3, color='blue')
     plt.xlabel('time/s')
     plt.ylabel('Slipping')
-    plt.savefig('/home/yzy20161103/csce636project/two-stream-action-recognition/record/result_' + video_title + '.png')
+    plt.savefig('/home/yzy20161103/csce636_project/project/result_' + video_title + '.png')
     plt.show()

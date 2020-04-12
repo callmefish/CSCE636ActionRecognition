@@ -1,7 +1,7 @@
 import pickle
 import os
 
-first_dir = 'video_data/'
+first_dir = 'video_data_475/'
 first_dir_sub = os.listdir(first_dir)
 
 frame_count = {}

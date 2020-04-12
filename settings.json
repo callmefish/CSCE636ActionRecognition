@@ -1,0 +1,6 @@
+{
+    "python.analysis.cacheFolderPath": "/home/yanzhiyu/anaconda3/envs/py36-keras/bin/python",
+    "python.pythonPath": "/home/yanzhiyu/anaconda3/envs/py36-keras/bin/python",
+    "editor.fontSize": 18,
+    "python.linting.flake8Enabled": true
+}

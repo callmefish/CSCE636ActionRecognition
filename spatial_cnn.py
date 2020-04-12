@@ -21,12 +21,13 @@ from utils import *
 from network import *
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 
 # 添加命令行指令
 parser = argparse.ArgumentParser(description='UCF101 spatial stream on resnet101')
-parser.add_argument('--epochs', default=40, type=int, metavar='N', help='number of total epochs')
-parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
-parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
+parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs')
+parser.add_argument('--batch-size', default=24, type=int, metavar='N', help='mini-batch size (default: 25)')
+parser.add_argument('--lr', default=1e-3, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
@@ -41,8 +42,8 @@ def main():
                         BATCH_SIZE=arg.batch_size,
                         # 进程数量
                         num_workers=8,
-                        path='/home/yzy20161103/csce636project/two-stream-action-recognition/video_data/',
-                        ucf_list ='/home/yzy20161103/csce636project/two-stream-action-recognition/UCF_list/',
+                        path='/home/yzy20161103/csce636_project/project/video_data_475/',
+                        ucf_list ='/home/yzy20161103/csce636_project/project/UCF_list/',
                         ucf_split ='01', 
                         )
     
@@ -80,6 +81,7 @@ class Spatial_CNN():
         print ('==> Build model and setup loss and optimizer')
         #build model
         self.model = resnet101(pretrained= True, channel=3).cuda()
+        #self.model = nn.DataParallel(resnet101(pretrained=True, channel=3)).cuda()
         #Loss function and optimizer
         #self.criterion = nn.BCEWithLogitsLoss().cuda()
         self.criterion = nn.CrossEntropyLoss().cuda()
@@ -200,7 +202,7 @@ class Spatial_CNN():
         self.dic_video_level_preds={}
         end = time.time()
         progress = tqdm(self.test_loader)
-        print(progress)
+        
         with torch.no_grad():
             for i, (keys,data,label) in enumerate(progress):
             
