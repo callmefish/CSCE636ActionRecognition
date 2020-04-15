@@ -3,7 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 
 
-file1 = 'record/spatial/rgb_test.csv'
+file1 = 'record/motion_res_3_100/opf_test.csv'
 
 test_loss_3 = []
 test_acc_3 = []
@@ -20,7 +20,7 @@ with open(file1, 'r') as f:
             test_acc_3.append(round(float(row[3])*0.01, 6))
 f.close()
 
-file2 = 'record/spatial/rgb_train.csv'
+file2 = 'record/motion_res_3_100/opf_train.csv'
 train_loss_3 = []
 train_acc_3 = []
 with open(file2, 'r') as f:
@@ -40,7 +40,7 @@ plt.figure()
 plt.plot(train_loss_3, label='Training loss')
 plt.plot(test_loss_3, label='Validation loss')
 # plt.ylim(0, int(max(Loss)) + 1)
-plt.title("rgb Loss")
+plt.title("opf Loss")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.ylim(0, 10)
@@ -52,7 +52,7 @@ plt.figure()
 plt.plot(train_acc_3, label='Training acc')
 plt.plot(test_acc_3, label='Validation acc')
 # plt.ylim(0, int(max(Loss)) + 1)
-plt.title("rgb Acc")
+plt.title("opf Acc")
 plt.xlabel("Epoch")
 plt.ylabel("Acc")
 plt.legend()

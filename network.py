@@ -4,14 +4,13 @@ import numpy as np
 import torch.utils.model_zoo as model_zoo
 import torch
 from torch.autograd import Variable
-
+import collections
 import torch.nn as nn
 import math
 import torch.utils.model_zoo as model_zoo
 
 
-__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
-           'resnet152']
+__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'VGG', 'vgg16', 'vgg16_bn']
 
 
 model_urls = {
@@ -20,6 +19,14 @@ model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+    'vgg16': 'https://download.pytorch.org/models/vgg16-397923af.pth',
+}
+
+cfg = {
+    'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+    'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
 
 
@@ -160,6 +167,113 @@ class ResNet(nn.Module):
         return out
 
 
+class VGG(nn.Module):
+
+    def __init__(self, features, num_classes=2):
+        super(VGG, self).__init__()
+        self.features = features
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 7 * 7, 4096),
+            nn.ReLU(True),
+            nn.Dropout(p=0.9),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(p=0.8),
+        )
+        # Change the dropout value to 0.9 and 0.8 for flow model
+        self.fc_action = nn.Linear(4096, num_classes)
+        self._initialize_weights()
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        x = self.fc_action(x)
+        return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                n = m.weight.size(1)
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
+
+
+def vgg_make_layers(cfg, channel=20, batch_norm=False):
+    layers = []
+    for v in cfg:
+        if v == 'M':
+            layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+        else:
+            conv2d = nn.Conv2d(channel, v, kernel_size=3, padding=1)
+            if batch_norm:
+                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
+            else:
+                layers += [conv2d, nn.ReLU(inplace=True)]
+            channel = v
+    return nn.Sequential(*layers)
+
+
+def vgg_change_key_names(old_params, channel):
+    new_params = collections.OrderedDict()
+    layer_count = 0
+    allKeyList = old_params.keys()
+    for layer_key in allKeyList:
+        if layer_count < len(allKeyList) - 2:
+            if layer_count == 0:
+                rgb_weight = old_params[layer_key]
+                rgb_weight_mean = torch.mean(rgb_weight, dim=1)
+                flow_weight = rgb_weight_mean.unsqueeze(1).repeat(1,channel,1,1)
+                new_params[layer_key] = flow_weight
+                layer_count += 1
+                # print(layer_key, new_params[layer_key].size())
+            else:
+                new_params[layer_key] = old_params[layer_key]
+                layer_count += 1
+                # print(layer_key, new_params[layer_key].size())
+        else:
+            continue
+
+    return new_params
+
+
+def vgg16(pretrained=False, channel=20, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(vgg_make_layers(cfg['D'], channel=channel), **kwargs)
+    if pretrained:
+        # model.load_state_dict(model_zoo.load_url(model_urls['vgg16']))
+        pretrained_dict = model_zoo.load_url(model_urls['vgg16'])
+        model_dict = model.state_dict()
+        new_pretrained_dict = vgg_change_key_names(pretrained_dict, channel)
+        # 1. filter out unnecessary keys
+        new_pretrained_dict = {k: v for k, v in new_pretrained_dict.items() if k in model_dict}
+        # 2. overwrite entries in the existing state dict
+        model_dict.update(new_pretrained_dict)
+        # 3. load the new state dict
+        model.load_state_dict(model_dict)
+
+    return model
+
+
+def vgg16_bn(pretrained=False, channel=20, **kwargs):
+    """VGG 16-layer model (configuration "D") with batch normalization
+       No pretrained model available.
+    """
+    model = VGG(vgg_make_layers(cfg['D'], channel=channel, batch_norm=True), **kwargs)
+    return model
+    
+    
 def resnet18(pretrained=False, channel= 20, **kwargs):
     """Constructs a ResNet-18 model.
     Args:
@@ -243,6 +357,6 @@ def weight_transform(model_dict, pretrain_dict, channel):
 
 #Test network
 if __name__ == '__main__':
-    model = resnet34(pretrained= True, channel=10)
+    model = vgg16(pretrained=True, channel=20)
     print(model)
      

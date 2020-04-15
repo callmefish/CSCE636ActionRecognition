@@ -3,7 +3,7 @@ import dataloader
 
 if __name__ == '__main__':
 
-    rgb_preds='record/spatial_497_5/spatial_video_preds.pickle'
+    rgb_preds='record/spatial/spatial_video_preds.pickle'
     opf_preds = 'record/motion/motion_video_preds.pickle'
 
     with open(rgb_preds,'rb') as f:
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     f.close()
 
     dataloader = dataloader.spatial_dataloader(BATCH_SIZE=1, num_workers=1,
-                                    path='/home/yzy20161103/csce636_project/project/video_data_497/',
+                                    path='/home/yzy20161103/csce636_project/project/video_data_475/',
                                     ucf_list='/home/yzy20161103/csce636_project/project/UCF_list/',
                                     ucf_split='01')
     train_loader,val_loader,test_video = dataloader.run()
@@ -28,17 +28,15 @@ if __name__ == '__main__':
     for name in a:
         
         r = rgb[name]
-#         if name in opf.keys():
-#             o = opf[name]
-#         else:
-#             o = [0, 0]
-        o = [0,0]    
+#         r = [0, 0]
+        o = opf[name]
+#         o = [0, 0]
 
         label = int(test_video[name])-1
 
         video_level_preds[ii,:] = (r+o)
         video_level_labels[ii] = label
-        ii+=1
+        ii+=1         
         if np.argmax(r+o) == (label):
             correct+=1
 

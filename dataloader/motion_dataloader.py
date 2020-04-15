@@ -54,7 +54,7 @@ class motion_dataset(Dataset):
 
         if self.mode == 'train':
             self.video, nb_clips = self.keys[idx].split('-')
-            self.clips_idx = random.randint(1, int(nb_clips) - 10)
+            self.clips_idx = random.randint(1, int(nb_clips))
         elif self.mode == 'val':
             self.video, self.clips_idx = self.keys[idx].split('-')
         else:
@@ -93,9 +93,6 @@ class Motion_DataLoader():
 
         for line in dic_frame:
             videoname = line.split('_', 1)[1].split('.', 1)[0]
-            #             n,g = videoname.split('_',1)
-            #             if n == 'HandStandPushups':
-            #                 videoname = 'HandstandPushups_'+ g
             # one less than rgb
             self.frame_count[videoname] = dic_frame[line] - 1
 
@@ -167,7 +164,7 @@ class Motion_DataLoader():
 
 if __name__ == '__main__':
     data_loader = Motion_DataLoader(BATCH_SIZE=1, num_workers=1, in_channel=10,
-                                    path='/home/yzy20161103/csce636_project/project/opt/',
+                                    path='/home/yzy20161103/csce636_project/project/opt_475/',
                                     ucf_list='/home/yzy20161103/csce636_project/project/UCF_list/',
                                     ucf_split='01'
                                     )
