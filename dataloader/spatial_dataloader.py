@@ -29,7 +29,7 @@ class spatial_dataset(Dataset):
 
         return transformed_img
 
-    # 让对象实现迭代功能
+   
     def __getitem__(self, idx):
 
         if self.mode == 'train':
@@ -81,7 +81,7 @@ class spatial_dataloader():
         splitter = UCF101_splitter(path=ucf_list,split=ucf_split)
         self.train_video, self.test_video = splitter.split_video()
 
-    # 把video名称和帧数对应起来的字典, {'asdasd': 289, 'asdasc': 152}
+   
     def load_frame_count(self):
         # print '==> Loading frame number of each video'
         with open('/home/yzy20161103/csce636_project/project/dataloader/dic/frame_count.pickle','rb') as file:
@@ -104,7 +104,7 @@ class spatial_dataloader():
 
         return train_loader, val_loader, self.test_video
 
-    # 将video名字+帧数（-9）和动作编号对应起来的字典
+    
     def get_training_dic(self):
         #print '==> Generate frame numbers of each training video'
         self.dic_training={}
@@ -128,13 +128,12 @@ class spatial_dataloader():
 
     def train(self):
         training_set = spatial_dataset(dic=self.dic_training, root_dir=self.data_path, mode='train', transform = transforms.Compose([
-                #transforms.Resize(256),
-                #transforms.FiveCrop(224),
-                #transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(transforms.ToTensor()(crop)) for crop in crops]))
                 transforms.RandomCrop(224),
                 transforms.RandomHorizontalFlip(),
+                #transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
+                #transforms.RandomRotation(30), 
                 transforms.ToTensor(),
-                # 从ImageNet中抽样出来的平均值和标准差值
+          
                 transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
                 ]))
         print('==> Training data :',len(training_set)*10,'frames')
