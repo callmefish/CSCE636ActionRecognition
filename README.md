@@ -1,4 +1,8 @@
 # CSCE636ActionRecognition
+A binary action recognition model for detecting "Slipping". The model based on two-stream CNN model and built by Pytorch.
+
+
+
 Run create_txt.py and save_pickle.py before every start.
 
 Dataset can be downloaded 
