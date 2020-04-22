@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import pickle
 import os
-from PIL import Image
 import time
 from tqdm import tqdm
 import shutil
@@ -31,7 +30,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # 添加命令行指令
 parser = argparse.ArgumentParser(description='video test for two stream')
-parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
+parser.add_argument('--batch-size', default=19, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 
 
@@ -51,7 +50,7 @@ def main(start_frame):
     spatial_model = Spatial_CNN(
         lr=arg.lr,
         batch_size=arg.batch_size,
-        resume='/home/yzy20161103/csce636_project/project/record/spatial_res_3_100/model_best.pth.tar',
+        resume='/home/yzy20161103/csce636_project/project/best_model_475/spatial/model_best.pth.tar',
         start_epoch=0,
         evaluate='evaluate',
         test_loader=spatial_test_loader,
@@ -71,7 +70,7 @@ def main(start_frame):
     motion_model = Motion_CNN(
         test_loader=motion_test_loader,
         start_epoch=0,
-        resume='/home/yzy20161103/csce636_project/project/record/motion_res_3_100/model_best.pth.tar',
+        resume='/home/yzy20161103/csce636_project/project/best_model_475/motion/model_best.pth.tar',
         evaluate='evaluate',
         lr=arg.lr,
         batch_size=arg.batch_size,
@@ -225,13 +224,12 @@ class Motion_CNN():
 def cal_for_frames(video_path, video_name, flow_path):
     frames = glob(os.path.join(video_path, '*.jpg'))
     frames.sort()
-    prev = cv2.imread(frames[0])
+    prev = cv2.UMat(cv2.imread(frames[0]))
     prev = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
     for i, frame_curr in enumerate(frames[1:]):
-        curr = cv2.imread(frame_curr)
+        curr = cv2.UMat(cv2.imread(frame_curr))
         curr = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
         tmp_flow = compute_TVL1(prev, curr)
-        # flow.append(tmp_flow)
         prev = curr
         if not os.path.exists(os.path.join(flow_path, video_name + '_u')):
             os.mkdir(os.path.join(flow_path, video_name + '_u'))
@@ -247,7 +245,7 @@ def compute_TVL1(prev, curr, bound=15):
     """Compute the TV-L1 optical flow."""
     TVL1 = cv2.optflow.DualTVL1OpticalFlow_create()
     flow = TVL1.calc(prev, curr, None)
-
+    flow = cv2.UMat.get(flow)
     assert flow.dtype == np.float32
 
     flow = (flow + bound) * (255.0 / (2 * bound))
@@ -264,25 +262,22 @@ def extract_flow(video_path, video_name, flow_path):
 
 
 if __name__ == '__main__':
-    file_path = '/home/yzy20161103/csce636_project/project/record/sample_video/sample_video_01(S).mp4'
+    start_time = time.time()
+    file_path = '/home/yzy20161103/csce636_project/project/record/sample_video/sample_video_04(S).mp4'
     video_title = file_path.split('/')[-1][:-4]
     print(video_title)
     cap = cv2.VideoCapture(file_path)
-    # file_path是文件的绝对路径，防止路径中含有中文时报错，需要解码
-    if cap.isOpened():  # 当成功打开视频时cap.isOpened()返回True,否则返回False
-        # get方法参数按顺序对应下表（从0开始编号)
-        rate = cap.get(5)  # 帧速率
-        FrameNumber = cap.get(7)  # 视频文件的帧数
-        duration = FrameNumber / rate  # 帧速率/视频总帧数 是时间，秒
+    if cap.isOpened():  
+        rate = cap.get(5)  
+        FrameNumber = cap.get(7)  
+        duration = FrameNumber / rate  
         print(duration)
     rgb_outPutDirName = '/home/yzy20161103/csce636_project/project/record/temp_chunk/'
     opf_outPutDirName = '/home/yzy20161103/csce636_project/project/record/temp_opf/'
 
     if not os.path.exists(rgb_outPutDirName):
-        # 如果文件目录不存在则创建目录
         os.makedirs(rgb_outPutDirName)
     if not os.path.exists(opf_outPutDirName):
-        # 如果文件目录不存在则创建目录
         os.makedirs(opf_outPutDirName)
 
     frame = 1
@@ -294,21 +289,22 @@ if __name__ == '__main__':
         res, image = cap.read()
         if not res:
             print('not res , not image')
-            if len(os.listdir(rgb_outPutDirName)) > 1:
+            if index > 27:
                 extract_flow(rgb_outPutDirName, 'v_temp_opf', opf_outPutDirName)
                 StartFrame = frame - len(os.listdir(rgb_outPutDirName))
                 main(StartFrame)
-                shutil.rmtree(rgb_outPutDirName)
-                shutil.rmtree(opf_outPutDirName)
-                os.makedirs(opf_outPutDirName)
+            
+            shutil.rmtree(rgb_outPutDirName)
+            shutil.rmtree(opf_outPutDirName)    
             break
         else:
+            image = cv2.resize(image, (342, 256))
             cv2.imwrite(rgb_outPutDirName + 'frame_' + str(index + 1).zfill(6) + '.jpg', image)
             frame += 1
             index += 1
-            if (frame - 1) % 100 == 0:
+            if (frame - 1) % 30 == 0:
                 extract_flow(rgb_outPutDirName, 'v_temp_opf', opf_outPutDirName)
-                StartFrame = frame - 101
+                StartFrame = frame - 31
                 main(StartFrame)
                 # break
                 shutil.rmtree(rgb_outPutDirName)
@@ -321,29 +317,75 @@ if __name__ == '__main__':
     cap.release()
     time_label = {'Slipping': []}
     whole_dic = {}
+    for key, value in whole_dic_motion.items():
+        whole_dic_motion[key] = value.tolist()
+    whole_dic_spatial = {k: v.tolist() for k, v in whole_dic_spatial.items()}
+    with open('/home/yzy20161103/csce636_project/project/best_model_475/' + video_title + '_motion.json', 'w') as json_file:
+        json_str0 = json.dumps(whole_dic_motion)
+        json_file.write(json_str0)
+        json_file.close()
+    with open('/home/yzy20161103/csce636_project/project/best_model_475/' + video_title + '_spatial.json', 'w') as json_file:
+        json_str1 = json.dumps(whole_dic_spatial)
+        json_file.write(json_str1)
+        json_file.close()
+    
     
     for key in whole_dic_spatial.keys():
         new_key = 'temp_opf_' + key.split('_')[2]
-        whole_dic[key] = whole_dic_spatial[key] + whole_dic_motion[new_key]
+        whole_dic[key] = [i+j for i,j in zip(whole_dic_spatial[key],whole_dic_motion[new_key])]
+    with open('/home/yzy20161103/csce636_project/project/best_model_475/' + video_title + '_sum.json', 'w') as json_file:
+        json_str2 = json.dumps(whole_dic)
+        json_file.write(json_str2)
+        json_file.close()
 
-    list_key = list(whole_dic.keys())
+    list_key_sum = list(whole_dic.keys())
+    list_key_rgb = list(whole_dic_spatial.keys())
+    list_key_opt = list(whole_dic_motion.keys())
     x = []
-    y = []
-    for i in range(len(list_key)):
-        current_time = int(list_key[i].split('_')[2]) / rate
+    y_sum = []
+    y_rgb = []
+    y_opt = []
+    for i in range(len(list_key_sum)):
+        current_time = int(list_key_sum[i].split('_')[2]) / rate
         x.append(current_time)
         # softmax
-        value = whole_dic[list_key[i]]
-        prec = math.exp(value[0]) / (math.exp(value[0]) + math.exp(value[1]))
-        y.append(prec)
-        time_label['Slipping'].append([current_time, prec])
+        value = whole_dic[list_key_sum[i]]
+        prec_sum = math.exp(value[0]) / (math.exp(value[0]) + math.exp(value[1]))
+        y_sum.append(prec_sum)
+        time_label['Slipping'].append([current_time, prec_sum])
+        value = whole_dic_spatial[list_key_rgb[i]]
+        prec_rgb = math.exp(value[0]) / (math.exp(value[0]) + math.exp(value[1]))
+        y_rgb.append(prec_rgb)
+        value = whole_dic_motion[list_key_opt[i]]
+        prec_opt = math.exp(value[0]) / (math.exp(value[0]) + math.exp(value[1]))
+        y_opt.append(prec_opt)
     print('time_label : {}'.format(time_label))
-    # os.makedirs('/home/yzy20161103/two-stream-action-recognition/record/time_label_data.json')
-    json_str = json.dumps(time_label)
-    with open('/home/yzy20161103/csce636_project/project/time_label_data_' + video_title + '.json', 'w') as json_file:
+    end_time = time.time()
+    print('The running time of video test is {}'.format(end_time - start_time))
+    with open('/home/yzy20161103/csce636_project/project/best_model_475/time_label_data_' + video_title + '.json', 'w') as json_file:
+        json_str = json.dumps(time_label)
         json_file.write(json_str)
-    plt.plot(x, y, linewidth=3, color='blue')
+        json_file.close()
+    plt.figure()
+    plt.plot(x, y_sum, linewidth=2, color='lightskyblue')
     plt.xlabel('time/s')
     plt.ylabel('Slipping')
-    plt.savefig('/home/yzy20161103/csce636_project/project/result_' + video_title + '.png')
+    plt.title('average fusion result')
+    plt.savefig('/home/yzy20161103/csce636_project/project/best_model_475/result_' + video_title + '_sum.png')
+    plt.show()
+    
+    plt.figure()
+    plt.plot(x, y_rgb, linewidth=2, color='lightskyblue')
+    plt.xlabel('time/s')
+    plt.ylabel('Slipping')
+    plt.title('spatial stream result')
+    plt.savefig('/home/yzy20161103/csce636_project/project/best_model_475/result_' + video_title + '_rgb.png')
+    plt.show()
+    
+    plt.figure()
+    plt.plot(x, y_opt, linewidth=2, color='lightskyblue')
+    plt.xlabel('time/s')
+    plt.ylabel('Slipping')
+    plt.title('motion stream result')
+    plt.savefig('/home/yzy20161103/csce636_project/project/best_model_475/result_' + video_title + '_opt.png')
     plt.show()
