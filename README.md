@@ -63,3 +63,7 @@ Download the [sample_video](https://storage.cloud.google.com/ucf101_for_rar/samp
 
 # Result of sample video
 In the best_model_475 folder
+
+
+# Demo video
+https://youtu.be/Zn65efx-Dn4
