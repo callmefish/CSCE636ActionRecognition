@@ -18,13 +18,13 @@ GPUs: 1 x NVIDIA Tesla K80
  	git clone https://github.com/callmefish/CSCE636ActionRecognition.git
  	```
  2. Download dataset and unzip them:\
-	[rgb_475](https://storage.cloud.google.com/ucf101_for_rar/video_data_475.zip?authuser=1): A dataset of RGB frames extracted from 475 action videos\
-	[opt_475](https://storage.cloud.google.com/ucf101_for_rar/opt_475.zip?authuser=1): A dataset of TVL1 optical flow frames extracted from 475 action videos.\
-	[rgb_575](https://storage.cloud.google.com/ucf101_for_rar/video_data_575.zip?authuser=1) (optional): A dataset of RGB frames extracted from 475 action videos.\
-	[opt_575](https://storage.cloud.google.com/ucf101_for_rar/opt_575.zip?authuser=1) (optional): A dataset of TVL1 optical flow frames extracted from 475 action videos.
+	[rgb_475](https://storage.cloud.google.com/ucf101_for_rar/video_data_475.zip?authuser=1)(gs://ucf101_for_rar/rgb_475.zip): A dataset of RGB frames extracted from 475 action videos\
+	[opt_475](https://storage.cloud.google.com/ucf101_for_rar/opt_475.zip?authuser=1)(gs://ucf101_for_rar/opt_475.zip): A dataset of TVL1 optical flow frames extracted from 475 action videos.\
+	[rgb_575](https://storage.cloud.google.com/ucf101_for_rar/video_data_575.zip?authuser=1) (gs://ucf101_for_rar/rgb_575.zip)(optional): A dataset of RGB frames extracted from 475 action videos.\
+	[opt_575](https://storage.cloud.google.com/ucf101_for_rar/opt_575.zip?authuser=1) (gs://ucf101_for_rar/opt_575.zip) (optional): A dataset of TVL1 optical flow frames extracted from 475 action videos.
  3. Download model and unzip:\
-	[best_model_475](https://storage.cloud.google.com/ucf101_for_rar/opt_575.zip?authuser=1): The spatial stream model and motion stream model trained from rgb_475 and opt_475 respectively.
-	[Brightness model and rotation model ](https://storage.cloud.google.com/ucf101_for_rar/opt_575.zip?authuser=1) (optional): The spatial stream model and motion stream model for different brightness and rotation trained from rgb_475 and opt_475 respectively.
+	[best_model_475](https://storage.cloud.google.com/ucf101_for_rar/opt_575.zip?authuser=1) (gs://ucf101_for_rar/best_model_475.zip): The spatial stream model and motion stream model trained from rgb_475 and opt_475 respectively.
+	[Brightness model and rotation model ](https://storage.cloud.google.com/ucf101_for_rar/opt_575.zip?authuser=1) (gs://ucf101_for_rar/brightness_rotate.zip)(optional): The spatial stream model and motion stream model for different brightness and rotation trained from rgb_475 and opt_475 respectively.
  4. Change every `path` in the python script.
  5. Run the `create_txt.py` and `save_pickle.py` before every start.
 
@@ -50,7 +50,7 @@ GPUs: 1 x NVIDIA Tesla K80
 	```
 
 # Test video
-Download the [sample_video](https://storage.cloud.google.com/ucf101_for_rar/sample_video.zip?authuser=1)  and change the `file path` in `whole_test.py` and `whole_test2.py` to test model.
+Download the [sample_video](https://storage.cloud.google.com/ucf101_for_rar/sample_video.zip?authuser=1) (gs://ucf101_for_rar/sample_video.zip)  and change the `file path` in `whole_test.py` and `whole_test2.py` to test model.
  1. Only use spatial stream model to test video
  	```
  	python whole_test.py
