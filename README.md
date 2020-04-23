@@ -60,3 +60,6 @@ Download the [sample_video](https://storage.cloud.google.com/ucf101_for_rar/samp
  	```
  	python whole_test2.py
  	```
+
+# Result of sample video
+In the best_model_475 folder
