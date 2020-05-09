@@ -29,7 +29,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 parser = argparse.ArgumentParser(description='video test for two stream')
 parser.add_argument('--batch-size', default=19, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
-parser.add_argument('--video_name', type=str, default='csce636test/6200_1.mp4')
+parser.add_argument('--video_name', type=str, default='csce636test/6700_2.mp4')
 arg = parser.parse_args()
 rgb_whole_pred = {}
 opf_whole_pred = {}
@@ -45,8 +45,8 @@ def main(start_frame):
     spatial_model = MODEL(
         lr=arg.lr,
         batch_size=arg.batch_size,
-        resume='best_model_475/spatial/model_best.pth.tar',
-        # resume='553_rgb_model_best.pth.tar',
+        # resume='best_model_475/spatial/model_best.pth.tar',
+        resume='555_rgb_model_best.pth.tar',
         start_epoch=0,
         evaluate='evaluate',
         test_loader=spatial_test_loader,
@@ -66,8 +66,8 @@ def main(start_frame):
     motion_model = MODEL(
         test_loader=motion_test_loader,
         start_epoch=0,
-        # resume='best_model_475/motion/model_best.pth.tar',
-        resume='555_opt_model_best.pth.tar',
+        resume='475_opt_model_best.pth.tar',
+        # resume='555_opt_model_best.pth.tar',
         evaluate='evaluate',
         lr=arg.lr,
         batch_size=arg.batch_size,
@@ -244,7 +244,7 @@ if __name__ == '__main__':
     for key in list(rgb_whole_pred.keys()):
         cur_time = float(key)/rate
         new_key = str(float('%.3f'%cur_time))
-        new_value = softmax(softmax(rgb_whole_pred[key]) + 1 * softmax(opf_whole_pred[key])).tolist()
+        new_value = softmax(rgb_whole_pred[key] + 1 * opf_whole_pred[key]).tolist()
         rgb_value = softmax(rgb_whole_pred[key]).tolist()
         opf_value = softmax(opf_whole_pred[key]).tolist()
         time_lable[new_key] = new_value[0]
@@ -252,7 +252,7 @@ if __name__ == '__main__':
         fig_y.append(new_value[0])
         fig_y_rgb.append(rgb_value[0])
         fig_y_opf.append(opf_value[0])
-    print(time_lable)
+    
 
 
     fig_x_1 = fig_x[:1]
@@ -273,25 +273,25 @@ if __name__ == '__main__':
     fig_y_1.append(fig_y[-1])
     fig_y_rgb_1.append(fig_y_rgb[-1])
     fig_y_opf_1.append(fig_y_opf[-1])
-    plt.figure()
-    plt.plot(fig_x_1, fig_y_1, linewidth=2, color='lightskyblue')
-    plt.xlabel('time/s')
-    plt.ylabel('Slipping probability')
-    plt.ylim(0, 1)
-    plt.xlim(0, duration + 0.2)
-    plt.title('two stream network')
-    #plt.savefig(video_title + 'timeLable.jpg')
-    plt.show()
+    # plt.figure()
+    # plt.plot(fig_x_1, fig_y_1, linewidth=2, color='lightskyblue')
+    # plt.xlabel('time/s')
+    # plt.ylabel('Slipping probability')
+    # plt.ylim(0, 1)
+    # plt.xlim(0, duration + 0.2)
+    # plt.title('two stream network')
+    # plt.savefig('bucket1/' + video_title + 'timeLable.jpg')
+    # plt.show()
 
-    plt.figure()
-    plt.plot(fig_x_1, fig_y_rgb_1, linewidth=2, color='skyblue')
-    plt.xlabel('time/s')
-    plt.ylabel('Slipping probability')
-    plt.ylim(0, 1)
-    plt.xlim(0, duration + 0.2)
-    plt.title('spatial stream network')
-    #plt.savefig(video_title + '_rgb_' + 'timeLable.jpg')
-    plt.show()
+    # plt.figure()
+    # plt.plot(fig_x_1, fig_y_rgb_1, linewidth=2, color='skyblue')
+    # plt.xlabel('time/s')
+    # plt.ylabel('Slipping probability')
+    # plt.ylim(0, 1)
+    # plt.xlim(0, duration + 0.2)
+    # plt.title('spatial stream network')
+    # plt.savefig('bucket1/' + video_title + '_rgb_' + 'timeLable.jpg')
+    # plt.show()
 
     plt.figure()
     plt.plot(fig_x_1, fig_y_opf_1, linewidth=2, color='blue')
@@ -300,10 +300,5 @@ if __name__ == '__main__':
     plt.ylim(0, 1)
     plt.xlim(0, duration + 0.2)
     plt.title('motion stream network')
-    #plt.savefig(video_title + '_opt_' + 'timeLable.jpg')
+    plt.savefig(video_title + '_opt_' + 'timeLable.jpg')
     plt.show()
-
-    rgb_whole_pred = {k: softmax(v) for k, v in rgb_whole_pred.items()}
-    opf_whole_pred = {k: softmax(v) for k, v in opf_whole_pred.items()}
-    print(rgb_whole_pred)
-    print(opf_whole_pred)
