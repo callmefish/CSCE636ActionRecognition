@@ -23,9 +23,9 @@ import dataloader
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-#parser = argparse.ArgumentParser(description='motion stream on resnet101')
-parser = argparse.ArgumentParser(description='motion stream on vgg16')
-parser.add_argument('--epochs', default=1, type=int, metavar='N', help='number of total epochs')
+parser = argparse.ArgumentParser(description='motion stream on resnet101')
+# parser = argparse.ArgumentParser(description='motion stream on vgg16')
+parser.add_argument('--epochs', default=60, type=int, metavar='N', help='number of total epochs')
 parser.add_argument('--batch-size', default=48, type=int, metavar='N', help='mini-batch size (default: 64)')
 parser.add_argument('--lr', default=1e-2, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
@@ -41,8 +41,8 @@ def main():
     data_loader = dataloader.Motion_DataLoader(
                         BATCH_SIZE=arg.batch_size,
                         num_workers=8,
-                        path='/home/yzy20161103/demo/CSCE636ActionRecognition/opt_475/',
-                        ucf_list='/home/yzy20161103/demo/CSCE636ActionRecognition/UCF_list/',
+                        path='/home/yzy20161103/CSCE636ActionRecognition/opt_475/',
+                        ucf_list='/home/yzy20161103/CSCE636ActionRecognition/UCF_list/',
                         ucf_split='01',
                         in_channel=10,
                         )

@@ -87,7 +87,7 @@ class Motion_DataLoader():
 
     def load_frame_count(self):
         # print '==> Loading frame number of each video'
-        with open('/home/yzy20161103/demo/CSCE636ActionRecognition/dataloader/dic/frame_count.pickle', 'rb') as file:
+        with open('/home/yzy20161103/CSCE636ActionRecognition/dataloader/dic/frame_count.pickle', 'rb') as file:
             dic_frame = pickle.load(file)
         file.close()
 

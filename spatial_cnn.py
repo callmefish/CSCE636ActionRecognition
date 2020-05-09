@@ -26,7 +26,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # 添加命令行指令
 parser = argparse.ArgumentParser(description='spatial stream on resnet101')
 #parser = argparse.ArgumentParser(description='spatial stream on vgg16')
-parser.add_argument('--epochs', default=1, type=int, metavar='N', help='number of total epochs')
+parser.add_argument('--epochs', default=60, type=int, metavar='N', help='number of total epochs')
 parser.add_argument('--batch-size', default=24, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=1e-3, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
@@ -43,8 +43,8 @@ def main():
                         BATCH_SIZE=arg.batch_size,
                         # 进程数量
                         num_workers=8,
-                        path='/home/yzy20161103/demo/CSCE636ActionRecognition/video_data_475/',
-                        ucf_list ='/home/yzy20161103/demo/CSCE636ActionRecognition/UCF_list/',
+                        path='/home/yzy20161103/CSCE636ActionRecognition/video_data_475/',
+                        ucf_list ='/home/yzy20161103/CSCE636ActionRecognition/UCF_list/',
                         ucf_split ='01', 
                         )
     
