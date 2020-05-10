@@ -312,8 +312,8 @@ if __name__ == '__main__':
     fig_y_opf_1.append(fig_y_opf[-1])
 
     save_fig(fig_x_1, fig_y_1, 'two stream network', 'bucket3/' + video_title + '_Part6.jpg')
-    save_fig(fig_x_1, fig_y_rgb_1, 'spatial stream network', 'bucket3/' + video_title + '_rgb' + '_Part6.jpg')
-    save_fig(fig_x_1, fig_y_opf_1, 'motion stream network', 'bucket3/' + video_title + '_opf' + '_Part6.jpg')
+#     save_fig(fig_x_1, fig_y_rgb_1, 'spatial stream network', 'bucket3/' + video_title + '_rgb' + '_Part6.jpg')
+#     save_fig(fig_x_1, fig_y_opf_1, 'motion stream network', 'bucket3/' + video_title + '_opf' + '_Part6.jpg')
     rgb_whole_pred = {}
     opf_whole_pred = {}
     shutil.rmtree('record/')
