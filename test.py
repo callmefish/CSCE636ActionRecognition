@@ -295,6 +295,7 @@ if __name__ == '__main__':
     json_str = json.dumps(time_label)
     with open(video_title + '_' + 'timelabel.json', 'w') as json_file:
         json_file.write(json_str)
+        json_file.close()
 
     fig_x_1 = fig_x[:1]
     fig_y_1 = fig_y[:1]
