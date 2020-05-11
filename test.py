@@ -292,8 +292,8 @@ if __name__ == '__main__':
                       list(rgb_whole_pred.keys())}
         fig_y = fig_y_rgb.copy()
     
-    json_str = json.dumps(time_label)
-    with open(video_title + '_' + 'timelabel.json', 'w') as json_file:
+    json_str = json.dumps(time_lable)
+    with open(video_title + '_' + 'timelable.json', 'w') as json_file:
         json_file.write(json_str)
         json_file.close()
 
