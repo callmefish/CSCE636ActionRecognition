@@ -291,6 +291,10 @@ if __name__ == '__main__':
         time_lable = {str(float('%.3f' % (float(key) / rate))): softmax(rgb_whole_pred[key]).tolist()[0] for key in
                       list(rgb_whole_pred.keys())}
         fig_y = fig_y_rgb.copy()
+    
+    json_str = json.dumps(time_label)
+    with open(video_title + '_' + 'timelabel.json', 'w') as json_file:
+        json_file.write(json_str)
 
     fig_x_1 = fig_x[:1]
     fig_y_1 = fig_y[:1]
