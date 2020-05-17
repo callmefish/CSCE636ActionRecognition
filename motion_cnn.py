@@ -86,7 +86,6 @@ class Motion_CNN():
         #build model
         #self.model = vgg16(pretrained=True, channel=self.channel).cuda()
         self.model = resnet101(pretrained=True, channel=self.channel).cuda()
-        #print self.model
         #Loss function and optimizer
         self.criterion = nn.CrossEntropyLoss().cuda()
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, momentum=0.9)
@@ -137,19 +136,16 @@ class Motion_CNN():
 
     def train_1epoch(self):
         print('==> Epoch:[{0}/{1}][training stage]'.format(self.epoch, self.nb_epochs))
-
         batch_time = AverageMeter()
         data_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
-        #top5 = AverageMeter()
         #switch to train mode
         self.model.train()    
         end = time.time()
         # mini-batch training
         progress = tqdm(self.train_loader)
         for i, (data,label) in enumerate(progress):
-
             # measure data loading time
             data_time.update(time.time() - end)
             
@@ -161,12 +157,10 @@ class Motion_CNN():
             output = self.model(input_var)
             loss = self.criterion(output, target_var)
             
-
             # measure accuracy and record loss
             prec1 = accuracy(output.data, label, topk=(1, ))
             losses.update(loss.data, data.size(0))
             top1.update(prec1[0], data.size(0))
-            #top5.update(prec5[0], data.size(0))
 
             # compute gradient and do SGD step
             self.optimizer.zero_grad()
@@ -187,11 +181,9 @@ class Motion_CNN():
 
     def validate_1epoch(self):
         print('==> Epoch:[{0}/{1}][validation stage]'.format(self.epoch, self.nb_epochs))
-
         batch_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
-        # top5 = AverageMeter()
         # switch to evaluate mode
         self.model.eval()
         self.dic_video_level_preds={}
@@ -199,15 +191,10 @@ class Motion_CNN():
         progress = tqdm(self.test_loader)
         with torch.no_grad():
             for i, (keys,data,label) in enumerate(progress):
-
-                #data = data.sub_(127.353346189).div_(14.971742063)
                 label = label.cuda()
                 data = data.cuda()
-                #data_var = Variable(data, volatile=True).cuda(async=True)
-                #label_var = Variable(label, volatile=True).cuda(async=True)
 
                 # compute output
-                #output = self.model(data_var)
                 output = self.model(data)
 
                 # measure elapsed time
@@ -239,8 +226,6 @@ class Motion_CNN():
         video_level_labels = np.zeros(len(self.dic_video_level_preds))
         ii=0
         for name in sorted(self.dic_video_level_preds.keys()):
-            #name = key.split('-',1)[0]
-
             preds = self.dic_video_level_preds[name]
             label = int(self.test_video[name])-1
                 
@@ -249,8 +234,7 @@ class Motion_CNN():
             ii+=1         
             if np.argmax(preds) == (label):
                 correct+=1
-
-        #top1 top5
+                
         video_level_labels = torch.from_numpy(video_level_labels).long()
         video_level_preds = torch.from_numpy(video_level_preds).float()
 
@@ -258,8 +242,6 @@ class Motion_CNN():
         top1 = accuracy(video_level_preds, video_level_labels, topk=(1,))     
                             
         top1 = float(top1[0].numpy())
-        # top5 = float(top5.numpy())
-            
         return top1,loss.data.cpu().numpy()
 
 if __name__=='__main__':
