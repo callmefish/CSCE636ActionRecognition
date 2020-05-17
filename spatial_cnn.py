@@ -139,7 +139,6 @@ class Spatial_CNN():
         data_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
-        #top5 = AverageMeter()
         #switch to train mode
         self.model.train()    
         end = time.time()
@@ -147,23 +146,18 @@ class Spatial_CNN():
         progress = tqdm(self.train_loader)
         
         for i, (data_dict,label) in enumerate(progress):
-
-    
             # measure data loading time
             data_time.update(time.time() - end)
             
             label = label.cuda()
             target_var = Variable(label).cuda()
-            #target_var = label.cuda()
 
             # compute output
             output = Variable(torch.zeros(len(data_dict['img1']),2).float()).cuda()
-            #output = torch.zeros(len(data_dict['img1']),2).float().cuda()
             for i in range(len(data_dict)):
                 key = 'img'+str(i)
                 data = data_dict[key]
                 input_var = Variable(data).cuda()
-                #input_var = data.cuda()
                 output += self.model(input_var)
 
 
@@ -173,7 +167,6 @@ class Spatial_CNN():
             prec1 = accuracy(output.data, label, topk=(1,))
             losses.update(loss.data, data.size(0))
             top1.update(prec1[0], data.size(0))
-            #top5.update(prec5, data.size(0))
 
             # compute gradient and do SGD step
             self.optimizer.zero_grad()
@@ -198,7 +191,6 @@ class Spatial_CNN():
         batch_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
-        #top5 = AverageMeter()
         # switch to evaluate mode
         self.model.eval()
         self.dic_video_level_preds={}
@@ -210,11 +202,7 @@ class Spatial_CNN():
             
                 label = label.cuda()
                 data = data.cuda()
-                #data_var = Variable(data, volatile=True).cuda()
-                #label_var = Variable(label, volatile=True).cuda()
-
                 # compute output
-                #output = self.model(data_var)
                 output = self.model(data)
                 # measure elapsed time
                 batch_time.update(time.time() - end)
@@ -256,24 +244,14 @@ class Spatial_CNN():
             if np.argmax(preds) == (label):
                 correct+=1
 
-        #top1 top5
         video_level_labels = torch.from_numpy(video_level_labels).long()
         video_level_preds = torch.from_numpy(video_level_preds).float()
             
-        # top1,top5 = accuracy(video_level_preds, video_level_labels, topk=(1,5))
         top1 = accuracy(video_level_preds, video_level_labels, topk=(1,))
         loss = self.criterion(Variable(video_level_preds).cuda(), Variable(video_level_labels).cuda())     
                             
         top1 = float(top1[0].numpy())
-        #top5 = float(top5.numpy())
-            
-        #print(' * Video level Prec@1 {top1:.3f}, Video level Prec@5 {top5:.3f}'.format(top1=top1, top5=top5))
         return top1,loss.data.cpu().numpy()
-
-
-
-
-
 
 
 if __name__=='__main__':
